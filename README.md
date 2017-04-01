@@ -1,6 +1,6 @@
 # Viglet Turing for WordPress
 
-Contributors: [@openviglet](http://www.viglet/openviglet)
+Contributors: [@openviglet](https://twitter.com/openviglet)
 
 Author URI: [http://www.viglet.ai](https://github.com/openviglet/turing4wp)
 
