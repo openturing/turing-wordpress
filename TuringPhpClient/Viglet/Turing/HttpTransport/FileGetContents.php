@@ -153,6 +153,7 @@ class Viglet_Turing_HttpTransport_FileGetContents extends Viglet_Turing_HttpTran
 	
 	public function performPostRequest($url, $rawPost, $contentType, $timeout = false)
 	{
+	    error_log("GETTCONTENT: " . print_r($rawPost, TRUE));
 		stream_context_set_option($this->_postContext, array(
 				'http' => array(
 					// set HTTP method

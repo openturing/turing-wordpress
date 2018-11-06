@@ -36,171 +36,185 @@
  */
 
 // Require Apache_Solr_HttpTransport_Abstract
-require_once(dirname(__FILE__) . '/Abstract.php');
+require_once (dirname(__FILE__) . '/Abstract.php');
 
 /**
- * A Curl based HTTP transport. Uses a single curl session for all requests.
+ * A Curl based HTTP transport.
+ * Uses a single curl session for all requests.
  */
 class Viglet_Turing_HttpTransport_Curl extends Viglet_Turing_HttpTransport_Abstract
 {
-	/**
-	 * SVN Revision meta data for this class
-	 */
-	const SVN_REVISION = '$Revision:$';
 
-	/**
-	 * SVN ID meta data for this class
-	 */
-	const SVN_ID = '$Id:$';
+    /**
+     * SVN Revision meta data for this class
+     */
+    const SVN_REVISION = '$Revision:$';
 
-	/**
-	 * Curl Session Handle
-	 *
-	 * @var resource
-	 */
-	private $_curl;
+    /**
+     * SVN ID meta data for this class
+     */
+    const SVN_ID = '$Id:$';
 
-	/**
-	 * Initializes a curl session
-	 */
-	public function __construct()
-	{
-		// initialize a CURL session
-		$this->_curl = curl_init();
+    /**
+     * Curl Session Handle
+     *
+     * @var resource
+     */
+    private $_curl;
 
-		// set common options that will not be changed during the session
-		curl_setopt_array($this->_curl, array(
-			// return the response body from curl_exec
-			CURLOPT_RETURNTRANSFER => true,
+    /**
+     * Initializes a curl session
+     */
+    public function __construct()
+    {
+        // initialize a CURL session
+        $this->_curl = curl_init();
 
-			// get the output as binary data
-			CURLOPT_BINARYTRANSFER => true,
+        // set common options that will not be changed during the session
+        curl_setopt_array($this->_curl, array(
+            // return the response body from curl_exec
+            CURLOPT_RETURNTRANSFER => true,
 
-			// we do not need the headers in the output, we get everything we need from curl_getinfo
-			CURLOPT_HEADER => false
-		));
-	}
+            // get the output as binary data
+            CURLOPT_BINARYTRANSFER => true,
 
-	/**
-	 * Closes a curl session
-	 */
-	function __destruct()
-	{
-		// close our curl session
-		curl_close($this->_curl);
-	}
-	
-	public function setAuthenticationCredentials($username, $password)
-	{
-		// add the options to our curl handle
-		curl_setopt_array($this->_curl, array(
-			CURLOPT_USERPWD => $username . ":" . $password,
-			CURLOPT_HTTPAUTH => CURLAUTH_BASIC		
-		));
-	}
+            // we do not need the headers in the output, we get everything we need from curl_getinfo
+            CURLOPT_HEADER => false
+        ));
+    }
 
-	public function performGetRequest($url, $timeout = false)
-	{
-		// check the timeout value
-		if ($timeout === false || $timeout <= 0.0)
-		{
-			// use the default timeout
-			$timeout = $this->getDefaultTimeout();
-		}
+    /**
+     * Closes a curl session
+     */
+    function __destruct()
+    {
+        // close our curl session
+        curl_close($this->_curl);
+    }
 
-		// set curl GET options
-		curl_setopt_array($this->_curl, array(
-			// make sure we're returning the body
-			CURLOPT_NOBODY => false,
+    public function setAuthenticationCredentials($username, $password)
+    {
+        // add the options to our curl handle
+        curl_setopt_array($this->_curl, array(
+            CURLOPT_USERPWD => $username . ":" . $password,
+            CURLOPT_HTTPAUTH => CURLAUTH_BASIC
+        ));
+    }
 
-			// make sure we're GET
-			CURLOPT_HTTPGET => true,
+    public function performGetRequest($url, $timeout = false)
+    {
+        // check the timeout value
+        if ($timeout === false || $timeout <= 0.0) {
+            // use the default timeout
+            $timeout = $this->getDefaultTimeout();
+        }
 
-			// set the URL
-			CURLOPT_URL => $url,
+        // set curl GET options
+        curl_setopt_array($this->_curl, array(
+            // make sure we're returning the body
+            CURLOPT_NOBODY => false,
 
-			// set the timeout
-			CURLOPT_TIMEOUT => $timeout
-		));
+            // make sure we're GET
+            CURLOPT_HTTPGET => true,
 
-		// make the request
-		$responseBody = curl_exec($this->_curl);
+            // set the URL
+            CURLOPT_URL => $url,
 
-		// get info from the transfer
-		$statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
-		$contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
+            // set the timeout
+            CURLOPT_TIMEOUT => $timeout
+        ));
 
-		return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
-	}
+        // make the request
+        $responseBody = curl_exec($this->_curl);
 
-	public function performHeadRequest($url, $timeout = false)
-	{
-		// check the timeout value
-		if ($timeout === false || $timeout <= 0.0)
-		{
-			// use the default timeout
-			$timeout = $this->getDefaultTimeout();
-		}
+        // get info from the transfer
+        $statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
 
-		// set curl HEAD options
-		curl_setopt_array($this->_curl, array(
-			// this both sets the method to HEAD and says not to return a body
-			CURLOPT_NOBODY => true,
+        return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
+    }
 
-			// set the URL
-			CURLOPT_URL => $url,
+    public function performHeadRequest($url, $timeout = false)
+    {
+        // check the timeout value
+        if ($timeout === false || $timeout <= 0.0) {
+            // use the default timeout
+            $timeout = $this->getDefaultTimeout();
+        }
 
-			// set the timeout
-			CURLOPT_TIMEOUT => $timeout
-		));
+        // set curl HEAD options
+        curl_setopt_array($this->_curl, array(
+            // this both sets the method to HEAD and says not to return a body
+            CURLOPT_NOBODY => true,
 
-		// make the request
-		$responseBody = curl_exec($this->_curl);
+            // set the URL
+            CURLOPT_URL => $url,
 
-		// get info from the transfer
-		$statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
-		$contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
+            // set the timeout
+            CURLOPT_TIMEOUT => $timeout
+        ));
 
-		return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
-	}
+        // make the request
+        $responseBody = curl_exec($this->_curl);
 
-	public function performPostRequest($url, $postData, $contentType, $timeout = false)
-	{
-		// check the timeout value
-		if ($timeout === false || $timeout <= 0.0)
-		{
-			// use the default timeout
-			$timeout = $this->getDefaultTimeout();
-		}
+        // get info from the transfer
+        $statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
 
-		// set curl POST options
-		curl_setopt_array($this->_curl, array(
-			// make sure we're returning the body
-			CURLOPT_NOBODY => false,
+        return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
+    }
 
-			// make sure we're POST
-			CURLOPT_POST => true,
+    public function performPostRequest($url, $postData, $contentType, $timeout = false)
+    {
+        $contentType = 'application/x-www-form-urlencoded';
+        error_log("CURLLL " . $postData);
+error_log(print_r($postData, TRUE));
+        $params = array(
+            'data' => $postData,
+            'index' => 'SebraeNA',
+            'config' => 'default'
+        );
 
-			// set the URL
-			CURLOPT_URL => $url,
+        // check the timeout value
+        if ($timeout === false || $timeout <= 0.0) {
+            // use the default timeout
+            $timeout = $this->getDefaultTimeout();
+        }
 
-			// set the post data
-			CURLOPT_POSTFIELDS => $postData,
+        // set curl POST options
+        curl_setopt_array($this->_curl, array(
+            // make sure we're returning the body
+            CURLOPT_NOBODY => false,
 
-			// set the content type
-			CURLOPT_HTTPHEADER => array("Content-Type: {$contentType}"),
+            // make sure we're POST
+            CURLOPT_POST => true,
 
-			// set the timeout
-			CURLOPT_TIMEOUT => $timeout
-		));
+            // set the URL
+            CURLOPT_URL => $url,
 
-		// make the request
-		$responseBody = curl_exec($this->_curl);
+            // set the post data
+            CURLOPT_POSTFIELDS => http_build_query($params),
 
-		// get info from the transfer
-		$statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
-		$contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
+            // set the content type
+            CURLOPT_HTTPHEADER => array(
+                "Content-Type: {$contentType}"
+            ),
 
-		return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
-	}
+            // set the timeout
+            CURLOPT_TIMEOUT => $timeout,
+
+            CURLINFO_HEADER_OUT => true
+        ));
+
+        // make the request
+        $responseBody = curl_exec($this->_curl);
+
+        // get info from the transfer
+        $info = curl_getinfo($this->_curl, CURLINFO_HEADER_OUT);
+        error_log(print_r($info, TRUE));
+        $statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
+
+        return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
+    }
 }

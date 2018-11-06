@@ -50,16 +50,16 @@ class Viglet_Turing_HttpTransportException extends Viglet_Turing_Exception
 	/**
 	 * Response for which exception was generated
 	 *
-	 * @var Apache_Solr_Response
+	 * @var Viglet_Turing_Response
 	 */
 	private $_response;
 
 	/**
 	 * HttpTransportException Constructor
 	 *
-	 * @param Apache_Solr_Response $response
+	 * @param Viglet_Turing_Response $response
 	 */
-	public function __construct(Apache_Solr_Response $response)
+	public function __construct(Viglet_Turing_Response $response)
 	{
 		parent::__construct("'{$response->getHttpStatus()}' Status: {$response->getHttpStatusMessage()}", $response->getHttpStatus());
 
@@ -69,7 +69,7 @@ class Viglet_Turing_HttpTransportException extends Viglet_Turing_Exception
 	/**
 	 * Get the response for which this exception was generated
 	 *
-	 * @return Apache_Solr_Response
+	 * @return Viglet_Turing_Response
 	 */
 	public function getResponse()
 	{

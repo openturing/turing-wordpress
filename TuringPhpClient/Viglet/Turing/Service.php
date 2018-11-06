@@ -3,6 +3,7 @@ require_once(dirname(__FILE__) . '/Exception.php');
 require_once(dirname(__FILE__) . '/HttpTransportException.php');
 require_once(dirname(__FILE__) . '/InvalidArgumentException.php');
 
+require_once(dirname(__FILE__) . '/Document.php');
 require_once(dirname(__FILE__) . '/Response.php');
 require_once(dirname(__FILE__) . '/HttpTransport/Interface.php');
 
@@ -49,7 +50,7 @@ class Viglet_Turing_Service
      */
     const PING_SERVLET = '/api';
 
-    const UPDATE_SERVLET = 'update';
+    const UPDATE_SERVLET = '/api/otsn/broker';
 
     const SEARCH_SERVLET = 'select';
 
@@ -263,19 +264,19 @@ class Viglet_Turing_Service
      * @param float $timeout
      *            Read timeout in seconds
      * @param string $contentType
-     * @return Apache_Solr_Response
+     * @return Viglet_Turing_Response
      *
-     * @throws Apache_Solr_HttpTransportException If a non 200 response status is returned
+     * @throws Viglet_Turing_HttpTransportException If a non 200 response status is returned
      */
     protected function _sendRawPost($url, $rawPost, $timeout = FALSE, $contentType = 'text/xml; charset=UTF-8')
     {
         $httpTransport = $this->getHttpTransport();
 
         $httpResponse = $httpTransport->performPostRequest($url, $rawPost, $contentType, $timeout);
-        $solrResponse = new Apache_Solr_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
+        $solrResponse = new Viglet_Turing_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
 
         if ($solrResponse->getHttpStatus() != 200) {
-            throw new Apache_Solr_HttpTransportException($solrResponse);
+            throw new Viglet_Turing_HttpTransportException($solrResponse);
         }
 
         return $solrResponse;
@@ -417,9 +418,9 @@ class Viglet_Turing_Service
         // lazy load a default if one has not be set
         if ($this->_httpTransport === false)
         {
-            require_once(dirname(__FILE__) . '/HttpTransport/FileGetContents.php');
+            require_once(dirname(__FILE__) . '/HttpTransport/Curl.php');
             
-            $this->_httpTransport = new Viglet_Turing_HttpTransport_FileGetContents();
+            $this->_httpTransport = new Viglet_Turing_HttpTransport_Curl();
         }
         
         return $this->_httpTransport;
@@ -433,6 +434,59 @@ class Viglet_Turing_Service
     public function setHttpTransport(Viglet_Turing_HttpTransport_Interface $httpTransport)
     {
         $this->_httpTransport = $httpTransport;
+    }
+    
+    /**
+     * Create an XML fragment from a {@link Viglet_Turing_Document} instance appropriate for use inside a Solr add call
+     *
+     * @return string
+     */
+    protected function _documentToXmlFragment(Viglet_Turing_Document $document)
+    {
+        $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><document>";
+        foreach ($document as $key => $value)
+        {
+        
+            $key = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
+            
+            if (is_array($value))
+            {
+                foreach ($value as $multivalue)
+                {
+                    $xml .= '<' . $key . '><![CDATA[';
+                                        
+                    $multivalue = htmlspecialchars($multivalue, ENT_NOQUOTES, 'UTF-8');
+                    
+                    $xml .=  $multivalue . ']]></' . $key . '>';
+                }
+            }
+            else
+            {
+                $xml .= '<' . $key . '><![CDATA[';
+                
+                $value = htmlspecialchars($value, ENT_NOQUOTES, 'UTF-8');
+                
+                $xml .=  $value . ']]></' . $key . '>';
+            }
+        }
+        
+        $xml .= "</document>";
+        error_log("AA3: " . $xml);
+        // replace any control characters to avoid Solr XML parser exception
+        return $this->_stripCtrlChars($xml);
+    }
+    
+    /**
+     * Replace control (non-printable) characters from string that are invalid to Solr's XML parser with a space.
+     *
+     * @param string $string
+     * @return string
+     */
+    protected function _stripCtrlChars($string)
+    {
+        // See:  http://w3.org/International/questions/qa-forms-utf-8.html
+        // Printable utf-8 does not include any of these chars below x7F
+        return preg_replace('@[\x00-\x08\x0B\x0C\x0E-\x1F]@', ' ', $string);
     }
     
     /**
@@ -460,4 +514,81 @@ class Viglet_Turing_Service
             return false;
         }
     }
+    /**
+     * Raw Add Method. Takes a raw post body and sends it to the update service.  Post body
+     * should be a complete and well formed "add" xml document.
+     *
+     * @param string $rawPost
+     * @return Apache_Solr_Response
+     *
+     * @throws Apache_Solr_HttpTransportException If an error occurs during the service call
+     */
+    public function add($rawPost)
+    {
+        return $this->_sendRawPost($this->_updateUrl, $rawPost);
+    }
+    /**
+     * Add a Solr Document to the index
+     *
+     * @param Viglet_Turing_Document $document
+     * @param boolean $allowDups
+     * @param boolean $overwritePending
+     * @param boolean $overwriteCommitted
+     * @param integer $commitWithin The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details.  If left empty this property will not be set in the request.
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
+     */
+    public function addDocument(Apache_Solr_Document $document, $allowDups = false, $overwritePending = true, $overwriteCommitted = true, $commitWithin = 0)
+    {
+        $dupValue = $allowDups ? 'true' : 'false';
+        $pendingValue = $overwritePending ? 'true' : 'false';
+        $committedValue = $overwriteCommitted ? 'true' : 'false';
+        
+        $commitWithin = (int) $commitWithin;
+        $commitWithinString = $commitWithin > 0 ? " commitWithin=\"{$commitWithin}\"" : '';
+        
+      
+        $rawPost = $this->_documentToXmlFragment($document);
+        
+        return $this->add($rawPost);
+    }
+    
+    /**
+     * Add an array of Solr Documents to the index all at once
+     *
+     * @param array $documents Should be an array of Apache_Solr_Document instances
+     * @param boolean $allowDups
+     * @param boolean $overwritePending
+     * @param boolean $overwriteCommitted
+     * @param integer $commitWithin The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details.  If left empty this property will not be set in the request.
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
+     */
+    public function addDocuments($documents, $allowDups = false, $overwritePending = true, $overwriteCommitted = true, $commitWithin = 0)
+    {
+
+        error_log("AA1");
+        $dupValue = $allowDups ? 'true' : 'false';
+        $pendingValue = $overwritePending ? 'true' : 'false';
+        $committedValue = $overwriteCommitted ? 'true' : 'false';
+        
+        $commitWithin = (int) $commitWithin;
+        $commitWithinString = $commitWithin > 0 ? " commitWithin=\"{$commitWithin}\"" : '';
+        
+        $rawPost = "";
+        foreach ($documents as $document)
+        {
+            if ($document instanceof Viglet_Turing_Document)
+            {
+                $rawPost .= $this->_documentToXmlFragment($document);
+            }
+        }
+        error_log("AA2: " . $rawPost);
+    
+    
+        return $this->add($rawPost);
+    }
+    
 }
