@@ -1,15 +1,14 @@
 <?php
 /*
  * Plugin Name: Viglet Turing for WordPress
- * Plugin URI: http://wordpress.org/extend/plugins/solr-for-wordpress/
- * Donate link: http://www.mattweber.org
+ * Plugin URI: http://wordpress.org/extend/plugins/viglet-turing-for-wordpress/
  * Description: Indexes, removes, and updates documents in the Viglet Turing.
- * Version: 0.5.1
+ * Version: 0.3.0
  * Author: Viglet
  * Author URI: http://www.viglet.ai
  */
 /*
- * Copyright (c) 2017 Viglet
+ * Copyright (c) 2017-2018 Viglet
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +30,14 @@
  */
 global $wp_version, $version;
 
-$version = '0.5.2';
+$version = '0.3.0';
 
 $errmsg = __ ( 'Viglet Turing for WordPress requires WordPress 3.0 or greater. ', 'turing4wp' );
 if (version_compare ( $wp_version, '3.0', '<' )) {
 	exit ( $errmsg );
 }
 
-require_once (dirname ( __FILE__ ) . '/SolrPhpClient/Apache/Solr/Service.php');
+require_once (dirname ( __FILE__ ) . '/TuringPhpClient/Viglet/Turing/Service.php');
 function turing4wp_get_option() {
 	$indexall = FALSE;
 	$option = 'plugin_turing4wp_settings';
@@ -91,7 +90,7 @@ function turing4wp_get_solr($server_id = NULL) {
 	}
 	
 	// create the solr service object
-	$solr = new Apache_Solr_Service ( $host, $port, $path );
+	$solr = new Viglet_Turing_Service ( $host, $port, $path );
 	
 	return $solr;
 }
@@ -1011,7 +1010,7 @@ function turing4wp_options_init() {
 	if (! isset ( $_GET ['page'] ))
 		return;
 	
-	if ('solr-for-wordpress/solr-for-wordpress.php' != $_GET ['page'] || 'solr-for-wordpress%2Fsolr-for-wordpress.php' != $_GET ['page'])
+	if ('turing4wp/viglet-turing-for-wordpress.php' != $_GET ['page'] || 'turing4wp%2Fviglet-turing-for-wordpress.php' != $_GET ['page'])
 		return;
 	
 	$method = $_POST ['method'];
@@ -1154,9 +1153,9 @@ function turing4wp_admin_head() {
     
     function doLoad($type, $prev) {
         if ($prev == null) {
-            $j.post("options-general.php?page=solr-for-wordpress/solr-for-wordpress.php", {method: "load", type: $type}, handleResults, "json");
+            $j.post("options-general.php?page=turing4wp/viglet-turing-for-wordpress.php", {method: "load", type: $type}, handleResults, "json");
         } else {
-            $j.post("options-general.php?page=solr-for-wordpress/solr-for-wordpress.php", {method: "load", type: $type, prev: $prev}, handleResults, "json");
+            $j.post("options-general.php?page=turing4wp/viglet-turing-for-wordpress.php", {method: "load", type: $type, prev: $prev}, handleResults, "json");
         }
     }
     

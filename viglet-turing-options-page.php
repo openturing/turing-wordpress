@@ -33,13 +33,13 @@ if ($turing4wp_settings ['turing4wp_solr_initialized'] != 1) {
 	$options ['turing4wp_index_all_sites'] = 0;
 	$options ['turing4wp_server'] ['info'] ['single'] = array (
 			'host' => 'localhost',
-			'port' => 8983,
-			'path' => '/solr' 
+			'port' => 2700,
+			'path' => '/turing' 
 	);
 	$options ['turing4wp_server'] ['info'] ['master'] = array (
 			'host' => 'localhost',
-			'port' => 8983,
-			'path' => '/solr' 
+			'port' => 2700,
+			'path' => '/turing' 
 	);
 	$options ['turing4wp_server'] ['type'] ['search'] = 'master';
 	$options ['turing4wp_server'] ['type'] ['update'] = 'master';
@@ -144,18 +144,10 @@ if ($_POST ['action'] == 'update') {
 		$value = stripslashes_deep ( $value );
 		$turing4wp_settings [$option] = $value;
 	}
-	// if we are in single server mode set the server types to master
-	// and configure the master server to the values of the single server
-	if ($turing4wp_settings ['turing4wp_connect_type'] == 'solr_single') {
+
 		$turing4wp_settings ['turing4wp_server'] ['info'] ['master'] = $turing4wp_settings ['turing4wp_server'] ['info'] ['single'];
 		$turing4wp_settings ['turing4wp_server'] ['type'] ['search'] = 'master';
 		$turing4wp_settings ['turing4wp_server'] ['type'] ['update'] = 'master';
-	}  // if this is a multi server setup we steal the master settings
-	  // and stuff them into the single server settings in case the user
-	  // decides to change it later
-	else {
-		$turing4wp_settings ['turing4wp_server'] ['info'] ['single'] = $turing4wp_settings ['turing4wp_server'] ['info'] ['master'];
-	}
 	// lets save our options array
 	turing4wp_update_option ( $turing4wp_settings );
 	
@@ -236,7 +228,7 @@ if ($_POST ['turing4wp_ping']) {
 	<h2><?php _e('Viglet Turing For WordPress', 'turing4wp') ?></h2>
 
 	<form method="post"
-		action="options-general.php?page=solr-for-wordpress/solr-for-wordpress.php">
+		action="options-general.php?page=turing4wp/viglet-turing-for-wordpress.php">
 		<h3><?php _e('Configure Viglet Turing', 'turing4wp') ?></h3>
 
 
@@ -272,31 +264,7 @@ if ($_POST ['turing4wp_ping']) {
 
 		<!-- Solr Config -->
 		<div class="solr_admin clearfix">
-			<div class="solr_adminR">
-				<div class="solr_adminR2" id="solr_admin_tab2">
-					<label><?php _e('Solr Host', 'turing4wp') ?></label> <input
-						name="settings[turing4wp_server][type][update]" type="hidden"
-						value="master" /> <input
-						name="settings[turing4wp_server][type][search]" type="hidden"
-						value="master" />
-					<p>
-						<input type="text"
-							name="settings[turing4wp_server][info][single][host]"
-							value="<?php echo $turing4wp_settings['turing4wp_server']['info']['single']['host']?>" />
-					</p>
-					<label><?php _e('Solr Port', 'turing4wp') ?></label>
-					<p>
-						<input type="text"
-							name="settings[turing4wp_server][info][single][port]"
-							value="<?php echo $turing4wp_settings['turing4wp_server']['info']['single']['port']?>" />
-					</p>
-					<label><?php _e('Solr Path', 'turing4wp') ?></label>
-					<p>
-						<input type="text"
-							name="settings[turing4wp_server][info][single][path]"
-							value="<?php echo $turing4wp_settings['turing4wp_server']['info']['single']['path']?>" />
-					</p>
-				</div>
+			<div class="solr_adminR">			
 				<div class="solr_adminR2" id="solr_admin_tab3">
 					<table>
 						<tr>
@@ -509,7 +477,7 @@ if ($_POST ['turing4wp_ping']) {
 	</form>
 	<hr />
 	<form method="post"
-		action="options-general.php?page=solr-for-wordpress/solr-for-wordpress.php">
+		action="options-general.php?page=turing4wp/viglet-turing-for-wordpress.php">
 		<h3><?php _e('Actions', 'turing4wp') ?></h3>
 		<table class="form-table">
 			<tr valign="top">
