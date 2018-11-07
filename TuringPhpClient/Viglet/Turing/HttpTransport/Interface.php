@@ -99,5 +99,5 @@ interface Viglet_Turing_HttpTransport_Interface
 	 * @param float $timeout
 	 * @return Viglet_Turing_HttpTransport_Response HTTP response
 	 */
-	public function performPostRequest($url, $rawPost, $contentType, $timeout = false);
+	public function performPostRequest($url, $rawPost, $contentType, $siteName = 'default', $timeout = false);
 }

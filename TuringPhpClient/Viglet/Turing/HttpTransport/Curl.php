@@ -164,14 +164,13 @@ class Viglet_Turing_HttpTransport_Curl extends Viglet_Turing_HttpTransport_Abstr
         return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
     }
 
-    public function performPostRequest($url, $postData, $contentType, $timeout = false)
-    {
+    public function performPostRequest($url, $postData, $contentType, $siteName = 'default', $timeout = false)
+    {    
         $contentType = 'application/x-www-form-urlencoded';
-        error_log("CURLLL " . $postData);
-error_log(print_r($postData, TRUE));
+
         $params = array(
             'data' => $postData,
-            'index' => 'SebraeNA',
+            'index' =>  'SebraeNA',
             'config' => 'default'
         );
 
@@ -208,10 +207,7 @@ error_log(print_r($postData, TRUE));
 
         // make the request
         $responseBody = curl_exec($this->_curl);
-
         // get info from the transfer
-        $info = curl_getinfo($this->_curl, CURLINFO_HEADER_OUT);
-        error_log(print_r($info, TRUE));
         $statusCode = curl_getinfo($this->_curl, CURLINFO_HTTP_CODE);
         $contentType = curl_getinfo($this->_curl, CURLINFO_CONTENT_TYPE);
 

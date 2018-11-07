@@ -89,14 +89,15 @@ function turing4wp_get_solr($server_id = NULL)
     $host = $plugin_turing4wp_settings['turing4wp_server']['info'][$server_id]['host'];
     $port = $plugin_turing4wp_settings['turing4wp_server']['info'][$server_id]['port'];
     $path = $plugin_turing4wp_settings['turing4wp_server']['info'][$server_id]['path'];
+    $siteName = $plugin_turing4wp_settings['turing4wp_server']['info'][$server_id]['siteName'];
     // double check everything has been set
-    if (! ($host and $port and $path)) {
-        syslog(LOG_ERR, "host, port or path are empty, host:$host, port:$port, path:$path");
+    if (! ($host and $port and $path and siteName)) {
+        syslog(LOG_ERR, "host, port or path are empty, host:$host, port:$port, path:$path, siteName:$siteName");
         return NULL;
     }
 
     // create the solr service object
-    $solr = new Viglet_Turing_Service($host, $port, $path);
+    $solr = new Viglet_Turing_Service($host, $port, $path, $siteName);
 
     return $solr;
 }
@@ -282,17 +283,6 @@ function turing4wp_post($documents, $commit = TRUE, $optimize = FALSE)
     }
 }
 
-function turing4wp_optimize()
-{
-    try {
-        $solr = turing4wp_get_solr();
-        if (! $solr == NULL) {
-            $solr->optimize();
-        }
-    } catch (Exception $e) {
-        syslog(LOG_ERR, $e->getMessage());
-    }
-}
 
 function turing4wp_delete($doc_id)
 {
@@ -300,7 +290,6 @@ function turing4wp_delete($doc_id)
         $solr = turing4wp_get_solr();
         if (! $solr == NULL) {
             $solr->deleteById($doc_id);
-            $solr->commit();
         }
     } catch (Exception $e) {
         syslog(LOG_ERR, $e->getMessage());
@@ -312,8 +301,8 @@ function turing4wp_delete_all()
     try {
         $solr = turing4wp_get_solr();
         if (! $solr == NULL) {
-            $solr->deleteByQuery('*:*');
-            $solr->commit();
+            $solr->deleteByType('post');
+            $solr->deleteByType('page');
         }
     } catch (Exception $e) {
         echo $e->getMessage();

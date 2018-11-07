@@ -1,11 +1,11 @@
 <?php
-require_once(dirname(__FILE__) . '/Exception.php');
-require_once(dirname(__FILE__) . '/HttpTransportException.php');
-require_once(dirname(__FILE__) . '/InvalidArgumentException.php');
+require_once (dirname(__FILE__) . '/Exception.php');
+require_once (dirname(__FILE__) . '/HttpTransportException.php');
+require_once (dirname(__FILE__) . '/InvalidArgumentException.php');
 
-require_once(dirname(__FILE__) . '/Document.php');
-require_once(dirname(__FILE__) . '/Response.php');
-require_once(dirname(__FILE__) . '/HttpTransport/Interface.php');
+require_once (dirname(__FILE__) . '/Document.php');
+require_once (dirname(__FILE__) . '/Response.php');
+require_once (dirname(__FILE__) . '/HttpTransport/Interface.php');
 
 class Viglet_Turing_Service
 {
@@ -48,9 +48,7 @@ class Viglet_Turing_Service
     /**
      * Servlet mappings
      */
-    const PING_SERVLET = '/api';
-
-    const UPDATE_SERVLET = '/api/otsn/broker';
+    const UPDATE_SERVLET = 'otsn/broker';
 
     const SEARCH_SERVLET = 'select';
 
@@ -65,7 +63,7 @@ class Viglet_Turing_Service
      *
      * @var string
      */
-    protected $_protocol, $_host, $_port, $_path;
+    protected $_protocol, $_host, $_port, $_path, $_siteName;
 
     /**
      * Whether {@link Apache_Solr_Response} objects should create {@link Apache_Solr_Document}s in
@@ -175,12 +173,13 @@ class Viglet_Turing_Service
      * @param Viglet_Turing_HttpTransport_Interface $httpTransport
      * @param string $protocol
      */
-    public function __construct($host = 'localhost', $port = 2700, $path = '/api/',$httpTransport = false, $protocol = 'http')
+    public function __construct($host = 'localhost', $port = 2700, $path = '/api/', $siteName = 'default', $httpTransport = false, $protocol = 'http')
     {
         $this->setHost($host);
         $this->setPort($port);
         $this->setPath($path);
         $this->setProtocol($protocol);
+        $this->setSiteName($siteName);
 
         $this->_initUrls();
 
@@ -219,17 +218,11 @@ class Viglet_Turing_Service
     {
         // Initialize our full servlet URLs now that we have server information
         $this->_extractUrl = $this->_constructUrl(self::EXTRACT_SERVLET);
-        $this->_pingUrl = $this->_constructUrl(self::PING_SERVLET);
+        $this->_pingUrl = $this->_constructUrl($this->getPath());
         $this->_searchUrl = $this->_constructUrl(self::SEARCH_SERVLET);
-        $this->_systemUrl = $this->_constructUrl(self::SYSTEM_SERVLET, array(
-            'wt' => self::SOLR_WRITER
-        ));
-        $this->_threadsUrl = $this->_constructUrl(self::THREADS_SERVLET, array(
-            'wt' => self::SOLR_WRITER
-        ));
-        $this->_updateUrl = $this->_constructUrl(self::UPDATE_SERVLET, array(
-            'wt' => self::SOLR_WRITER
-        ));
+        $this->_systemUrl = $this->_constructUrl(self::SYSTEM_SERVLET);
+        $this->_threadsUrl = $this->_constructUrl(self::THREADS_SERVLET);
+        $this->_updateUrl = $this->_constructUrl($this->getPath() . self::UPDATE_SERVLET);
 
         $this->_urlsInited = true;
     }
@@ -257,6 +250,31 @@ class Viglet_Turing_Service
     }
 
     /**
+     * Central method for making a get operation against this Solr Server
+     *
+     * @param string $url
+     * @param float $timeout
+     *            Read timeout in seconds
+     * @param string $contentType
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If a non 200 response status is returned
+     */
+    protected function _sendGet($url, $timeout = FALSE)
+    {
+        $httpTransport = $this->getHttpTransport();
+
+        $httpResponse = $httpTransport->performGetRequest($url, $timeout);
+        $solrResponse = new Viglet_Turing_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
+
+        if ($solrResponse->getHttpStatus() != 200) {
+            throw new Viglet_Turing_HttpTransportException($solrResponse);
+        }
+
+        return $solrResponse;
+    }
+
+    /**
      * Central method for making a post operation against this Solr Server
      *
      * @param string $url
@@ -272,7 +290,7 @@ class Viglet_Turing_Service
     {
         $httpTransport = $this->getHttpTransport();
 
-        $httpResponse = $httpTransport->performPostRequest($url, $rawPost, $contentType, $timeout);
+        $httpResponse = $httpTransport->performPostRequest($url, $rawPost, $contentType, $this->getSiteName(), $timeout);
         $solrResponse = new Viglet_Turing_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
 
         if ($solrResponse->getHttpStatus() != 200) {
@@ -280,6 +298,34 @@ class Viglet_Turing_Service
         }
 
         return $solrResponse;
+    }
+
+    /**
+     * Returns the set Site Name
+     *
+     * @return string
+     */
+    public function getSiteName()
+    {
+        return $this->_siteName;
+    }
+
+    /**
+     * Set the site Name used.
+     * If empty will fallback to constants
+     *
+     * @param string $siteName
+     *
+     * @throws Viglet_Turing_InvalidArgumentException If the host parameter is empty
+     */
+    public function setSiteName($siteName)
+    {
+        // Use the provided host or use the default
+        if (empty($siteName)) {
+            throw new Viglet_Turing_InvalidArgumentException('Site Name parameter is empty');
+        } else {
+            $this->_siteName = $siteName;
+        }
     }
 
     /**
@@ -298,13 +344,13 @@ class Viglet_Turing_Service
      *
      * @param string $host
      *
-     * @throws Apache_Solr_InvalidArgumentException If the host parameter is empty
+     * @throws Viglet_Turing_InvalidArgumentException If the host parameter is empty
      */
     public function setHost($host)
     {
         // Use the provided host or use the default
         if (empty($host)) {
-            throw new Apache_Solr_InvalidArgumentException('Host parameter is empty');
+            throw new Viglet_Turing_InvalidArgumentException('Host parameter is empty');
         } else {
             $this->_host = $host;
         }
@@ -330,7 +376,7 @@ class Viglet_Turing_Service
      *
      * @param integer $port
      *
-     * @throws Apache_Solr_InvalidArgumentException If the port parameter is empty
+     * @throws Viglet_Turing_InvalidArgumentException If the port parameter is empty
      */
     public function setPort($port)
     {
@@ -338,7 +384,7 @@ class Viglet_Turing_Service
         $port = (int) $port;
 
         if ($port <= 0) {
-            throw new Apache_Solr_InvalidArgumentException('Port is not a valid port number');
+            throw new Viglet_Turing_InvalidArgumentException('Port is not a valid port number');
         } else {
             $this->_port = $port;
         }
@@ -398,7 +444,7 @@ class Viglet_Turing_Service
     public function setProtocol($protocol)
     {
         if (empty($protocol)) {
-            throw new Apache_Solr_InvalidArgumentException('Protocl parameter is empty');
+            throw new Viglet_Turing_InvalidArgumentException('Protocl parameter is empty');
         } else {
             $this->_protocol = $protocol;
         }
@@ -416,26 +462,26 @@ class Viglet_Turing_Service
     public function getHttpTransport()
     {
         // lazy load a default if one has not be set
-        if ($this->_httpTransport === false)
-        {
-            require_once(dirname(__FILE__) . '/HttpTransport/Curl.php');
-            
+        if ($this->_httpTransport === false) {
+            require_once (dirname(__FILE__) . '/HttpTransport/Curl.php');
+
             $this->_httpTransport = new Viglet_Turing_HttpTransport_Curl();
         }
-        
+
         return $this->_httpTransport;
     }
-    
+
     /**
      * Set the HTTP Transport implemenation that will be used for all HTTP requests
      *
-     * @param Viglet_Turing_HttpTransport_Interface
+     * @param
+     *            Viglet_Turing_HttpTransport_Interface
      */
     public function setHttpTransport(Viglet_Turing_HttpTransport_Interface $httpTransport)
     {
         $this->_httpTransport = $httpTransport;
     }
-    
+
     /**
      * Create an XML fragment from a {@link Viglet_Turing_Document} instance appropriate for use inside a Solr add call
      *
@@ -444,38 +490,32 @@ class Viglet_Turing_Service
     protected function _documentToXmlFragment(Viglet_Turing_Document $document)
     {
         $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><document>";
-        foreach ($document as $key => $value)
-        {
-        
+        foreach ($document as $key => $value) {
+
             $key = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
-            
-            if (is_array($value))
-            {
-                foreach ($value as $multivalue)
-                {
+
+            if (is_array($value)) {
+                foreach ($value as $multivalue) {
                     $xml .= '<' . $key . '><![CDATA[';
-                                        
+
                     $multivalue = htmlspecialchars($multivalue, ENT_NOQUOTES, 'UTF-8');
-                    
-                    $xml .=  $multivalue . ']]></' . $key . '>';
+
+                    $xml .= $multivalue . ']]></' . $key . '>';
                 }
-            }
-            else
-            {
+            } else {
                 $xml .= '<' . $key . '><![CDATA[';
-                
+
                 $value = htmlspecialchars($value, ENT_NOQUOTES, 'UTF-8');
-                
-                $xml .=  $value . ']]></' . $key . '>';
+
+                $xml .= $value . ']]></' . $key . '>';
             }
         }
-        
+
         $xml .= "</document>";
-        error_log("AA3: " . $xml);
         // replace any control characters to avoid Solr XML parser exception
         return $this->_stripCtrlChars($xml);
     }
-    
+
     /**
      * Replace control (non-printable) characters from string that are invalid to Solr's XML parser with a space.
      *
@@ -484,38 +524,38 @@ class Viglet_Turing_Service
      */
     protected function _stripCtrlChars($string)
     {
-        // See:  http://w3.org/International/questions/qa-forms-utf-8.html
+        // See: http://w3.org/International/questions/qa-forms-utf-8.html
         // Printable utf-8 does not include any of these chars below x7F
         return preg_replace('@[\x00-\x08\x0B\x0C\x0E-\x1F]@', ' ', $string);
     }
-    
+
     /**
      * Call the /admin/ping servlet, can be used to quickly tell if a connection to the
      * server is able to be made.
      *
-     * @param float $timeout maximum time to wait for ping in seconds, -1 for unlimited (default is 2)
+     * @param float $timeout
+     *            maximum time to wait for ping in seconds, -1 for unlimited (default is 2)
      * @return float Actual time taken to ping the server, FALSE if timeout or HTTP error status occurs
      */
     public function ping($timeout = 2)
     {
         $start = microtime(true);
-        
+
         $httpTransport = $this->getHttpTransport();
-     
+
         $httpResponse = $httpTransport->performHeadRequest($this->_pingUrl, $timeout);
         $solrResponse = new Viglet_Turing_Response($httpResponse, $this->_createDocuments, $this->_collapseSingleValueArrays);
-        
-        if ($solrResponse->getHttpStatus() == 200)
-        {
+
+        if ($solrResponse->getHttpStatus() == 200) {
             return microtime(true) - $start;
-        }
-        else
-        {
+        } else {
             return false;
         }
     }
+
     /**
-     * Raw Add Method. Takes a raw post body and sends it to the update service.  Post body
+     * Raw Add Method.
+     * Takes a raw post body and sends it to the update service. Post body
      * should be a complete and well formed "add" xml document.
      *
      * @param string $rawPost
@@ -525,8 +565,10 @@ class Viglet_Turing_Service
      */
     public function add($rawPost)
     {
+        error_log("BBB3");
         return $this->_sendRawPost($this->_updateUrl, $rawPost);
     }
+
     /**
      * Add a Solr Document to the index
      *
@@ -534,61 +576,140 @@ class Viglet_Turing_Service
      * @param boolean $allowDups
      * @param boolean $overwritePending
      * @param boolean $overwriteCommitted
-     * @param integer $commitWithin The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details.  If left empty this property will not be set in the request.
+     * @param integer $commitWithin
+     *            The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details. If left empty this property will not be set in the request.
      * @return Viglet_Turing_Response
      *
      * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
      */
     public function addDocument(Apache_Solr_Document $document, $allowDups = false, $overwritePending = true, $overwriteCommitted = true, $commitWithin = 0)
     {
+     
         $dupValue = $allowDups ? 'true' : 'false';
         $pendingValue = $overwritePending ? 'true' : 'false';
         $committedValue = $overwriteCommitted ? 'true' : 'false';
-        
+
         $commitWithin = (int) $commitWithin;
         $commitWithinString = $commitWithin > 0 ? " commitWithin=\"{$commitWithin}\"" : '';
-        
-      
+
         $rawPost = $this->_documentToXmlFragment($document);
-        
+     
         return $this->add($rawPost);
     }
-    
+
     /**
      * Add an array of Solr Documents to the index all at once
      *
-     * @param array $documents Should be an array of Apache_Solr_Document instances
+     * @param array $documents
+     *            Should be an array of Apache_Solr_Document instances
      * @param boolean $allowDups
      * @param boolean $overwritePending
      * @param boolean $overwriteCommitted
-     * @param integer $commitWithin The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details.  If left empty this property will not be set in the request.
+     * @param integer $commitWithin
+     *            The number of milliseconds that a document must be committed within, see @{link http://wiki.apache.org/solr/UpdateXmlMessages#The_Update_Schema} for details. If left empty this property will not be set in the request.
      * @return Viglet_Turing_Response
      *
      * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
      */
     public function addDocuments($documents, $allowDups = false, $overwritePending = true, $overwriteCommitted = true, $commitWithin = 0)
     {
-
-        error_log("AA1");
         $dupValue = $allowDups ? 'true' : 'false';
         $pendingValue = $overwritePending ? 'true' : 'false';
         $committedValue = $overwriteCommitted ? 'true' : 'false';
-        
+
         $commitWithin = (int) $commitWithin;
         $commitWithinString = $commitWithin > 0 ? " commitWithin=\"{$commitWithin}\"" : '';
-        
-        $rawPost = "";
-        foreach ($documents as $document)
-        {
-            if ($document instanceof Viglet_Turing_Document)
-            {
+
+       $response = null;
+        foreach ($documents as $document) {
+            $rawPost = "";
+            if ($document instanceof Viglet_Turing_Document) {
                 $rawPost .= $this->_documentToXmlFragment($document);
             }
+            $response = $this->add($rawPost);
         }
-        error_log("AA2: " . $rawPost);
-    
-    
-        return $this->add($rawPost);
+
+        return $response;
     }
-    
+
+    /**
+     * Raw Delete Method.
+     * Takes a raw post body and sends it to the update service. Body should be
+     * a complete and well formed "delete" xml document
+     *
+     * @param string $rawPost
+     *            Expected to be utf-8 encoded xml document
+     * @param float $timeout
+     *            Maximum expected duration of the delete operation on the server (otherwise, will throw a communication exception)
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
+     */
+    public function delete($id, $timeout = 3600)
+    {
+        $params = array(
+            'index' => $this->getSiteName(),
+            'config' => 'default',
+            'id' => $id
+        );
+
+        $deleteUrl = $this->_updateUrl . '? ' . http_build_query($params);
+
+        return $this->_sendGet($deleteUrl, $timeout);
+    }
+
+    /**
+     * Create a delete document based on document ID
+     *
+     * @param string $id
+     *            Expected to be utf-8 encoded
+     * @param boolean $fromPending
+     * @param boolean $fromCommitted
+     * @param float $timeout
+     *            Maximum expected duration of the delete operation on the server (otherwise, will throw a communication exception)
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
+     */
+    public function deleteById($id, $fromPending = true, $fromCommitted = true, $timeout = 3600)
+    {
+
+        // escape special xml characters
+        $id = htmlspecialchars($id, ENT_NOQUOTES, 'UTF-8');
+
+        return $this->delete($id, $timeout);
+    }
+
+    /**
+     * Create a delete document based on document Type
+     *
+     * @param string $type
+     *            Expected to be utf-8 encoded
+     * @param boolean $fromPending
+     * @param boolean $fromCommitted
+     * @param float $timeout
+     *            Maximum expected duration of the delete operation on the server (otherwise, will throw a communication exception)
+     * @return Viglet_Turing_Response
+     *
+     * @throws Viglet_Turing_HttpTransportException If an error occurs during the service call
+     */
+    public function deleteByType($type, $fromPending = true, $fromCommitted = true, $timeout = 3600)
+    {
+
+        // escape special xml characters
+        $type = htmlspecialchars($type, ENT_NOQUOTES, 'UTF-8');
+
+        $params = array(
+            'index' => $this->getSiteName(),
+            'config' => 'default',
+            'type' => $type,
+            'action' => 'delete'
+        );
+
+        $deleteUrl = $this->_constructUrl($this->getPath() . self::UPDATE_SERVLET, $params);
+
+        // $deleteUrl = $this->_updateUrl . '? ' . http_build_query($params);
+        error_log("Delete111: " . $deleteUrl);
+        return $this->_sendGet($deleteUrl, $timeout);
+    }
 }

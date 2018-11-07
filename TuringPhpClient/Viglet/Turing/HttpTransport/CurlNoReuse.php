@@ -168,7 +168,7 @@ class Viglet_Turing_HttpTransport_CurlNoReuse extends Viglet_Turing_HttpTranspor
 		return new Viglet_Turing_HttpTransport_Response($statusCode, $contentType, $responseBody);
 	}
 
-	public function performPostRequest($url, $postData, $contentType, $timeout = false)
+	public function performPostRequest($url, $postData, $contentType, $siteName = 'default', $timeout = false)
 	{
 		// check the timeout value
 		if ($timeout === false || $timeout <= 0.0)
