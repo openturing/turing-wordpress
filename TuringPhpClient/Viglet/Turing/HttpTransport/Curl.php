@@ -170,7 +170,7 @@ class Viglet_Turing_HttpTransport_Curl extends Viglet_Turing_HttpTransport_Abstr
 
         $params = array(
             'data' => $postData,
-            'index' =>  'SebraeNA',
+            'index' =>  $siteName,
             'config' => 'default'
         );
 
