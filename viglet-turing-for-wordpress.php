@@ -179,20 +179,9 @@ function turing4wp_build_document($post_info, $domain = NULL, $path = NULL)
         }
 
         $doc->setField('title', $post_info->post_title);
-        $doc->setField('content', strip_tags($post_info->post_content));
+        $doc->setField('content', html_entity_decode(strip_tags($post_info->post_content)));
 
-        // rawcontent strips out characters lower than 0x20
-        $doc->setField('rawcontent', strip_tags(preg_replace('/[^(\x20-\x7F)\x0A]*/', '', $post_info->post_content)));
-
-        // contentnoshortcodes also strips characters below 0x20 but also strips shortcodes
-        // used in WP to add images or other content, useful if you're pulling this data
-        // into another system
-        //
-        // For example
-        // [caption id="attachment_92495" align="alignright" width="160" caption="Duane Sand"][/caption] FARGO - Republican U.S. Senate...
-        //
-        // Will become
-        // FARGO - Republican U.S. Senate...
+      
         $doc->setField('contentnoshortcodes', strip_tags(preg_replace('/[^(\x20-\x7F)\x0A]*/', '', strip_tags(strip_shortcodes($post_info->post_content)))));
         $doc->setField('numcomments', $numcomments);
         $doc->setField('author', $auth_info->display_name);
@@ -206,11 +195,7 @@ function turing4wp_build_document($post_info, $domain = NULL, $path = NULL)
         $categories = get_the_category($post_info->ID);
         if (! $categories == NULL) {
             foreach ($categories as $category) {
-                if ($categoy_as_taxonomy) {
-                    $doc->addField('categories', get_category_parents($category->cat_ID, FALSE, '^^'));
-                } else {
-                    $doc->addField('categories', $category->cat_name);
-                }
+                $doc->addField('categories', $category->cat_name);
             }
         }
 
@@ -268,21 +253,17 @@ function turing4wp_post($documents, $commit = TRUE, $optimize = FALSE)
         if (! $solr == NULL) {
 
             if ($documents) {
-                syslog(LOG_ERR, "posting " . count($documents) . " documents for blog:" . get_bloginfo('wpurl'));
-                error_log( "posting " . count($documents) . " documents for blog:" . get_bloginfo('wpurl'));
+                syslog(LOG_ERR, "posting " . count($documents) . " documents for blog:" . get_bloginfo('wpurl'));             
                 $solr->addDocuments($documents);
             }
         } else {
             syslog(LOG_ERR, "failed to get a solr instance created");
-            error_log( "failed to get a solr instance created");
         }
     } catch (Exception $e) {
         syslog(LOG_ERR, "ERROR: " . $e->getMessage());
-        error_log( "ERROR: " . $e->getMessage());
         // echo $e->getMessage();
     }
 }
-
 
 function turing4wp_delete($doc_id)
 {
@@ -590,7 +571,7 @@ function turing4wp_load_all_posts($prev, $type = 'all')
             if ($idx === $postcount - 1) {
                 $end = TRUE;
             }
-          
+
             $documents[] = turing4wp_build_document(get_post($postid));
             $cnt ++;
             if ($cnt == $batchsize) {
