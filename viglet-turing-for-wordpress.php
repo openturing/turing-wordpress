@@ -179,9 +179,8 @@ function turing4wp_build_document($post_info, $domain = NULL, $path = NULL)
         }
 
         $doc->setField('title', $post_info->post_title);
-        $doc->setField('content', html_entity_decode(strip_tags($post_info->post_content)));
+        $doc->setField('content', preg_replace('/\s+/', ' ', html_entity_decode(strip_tags(str_replace('<', ' <', $post_info->post_content)))));
 
-      
         $doc->setField('contentnoshortcodes', strip_tags(preg_replace('/[^(\x20-\x7F)\x0A]*/', '', strip_tags(strip_shortcodes($post_info->post_content)))));
         $doc->setField('numcomments', $numcomments);
         $doc->setField('author', $auth_info->display_name);
@@ -253,7 +252,7 @@ function turing4wp_post($documents, $commit = TRUE, $optimize = FALSE)
         if (! $solr == NULL) {
 
             if ($documents) {
-                syslog(LOG_ERR, "posting " . count($documents) . " documents for blog:" . get_bloginfo('wpurl'));             
+                syslog(LOG_ERR, "posting " . count($documents) . " documents for blog:" . get_bloginfo('wpurl'));
                 $solr->addDocuments($documents);
             }
         } else {
