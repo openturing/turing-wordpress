@@ -1,13 +1,4 @@
 # Viglet Turing for WordPress
-
-Contributors: [@openviglet](https://twitter.com/openviglet)
-
-Author URI: [http://www.viglet.ai](https://github.com/openviglet/turing4wp)
-
-Plugin URI: [https://github.com/openviglet/turing4wp](https://github.com/openviglet/turing4wp)
-
-Donate link: [http://www.viglet.ai](http://www.viglet.ai)
-
 A WordPress plugin that replaces the default WordPress search to use Viglet Turing Semantic Search.
 
 ## Installation
